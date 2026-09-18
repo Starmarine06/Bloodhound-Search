@@ -1,0 +1,13 @@
+target/
+node_modules/
+**/node_modules/
+**/target/
+*.log
+bin/*.exe
+bin/bh
+!bin/bh.js
+packages/*/bin/*
+!packages/*/bin/.gitkeep
+.DS_Store
+Thumbs.db
+to update.txt

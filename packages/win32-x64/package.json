@@ -1,0 +1,18 @@
+{
+  "name": "@dev_nambiar/bloodhound-win32-x64",
+  "version": "0.1.1",
+  "description": "Native pre-built binary of Bloodhound for win32-x64",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

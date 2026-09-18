@@ -1,0 +1,55 @@
+{
+  "name": "bloodhound-search",
+  "version": "0.1.1",
+  "description": "Ultra-fast CLI search engine built in Rust for searching file contents and names across Linux, macOS, and Windows",
+  "main": "bin/bh.js",
+  "bin": {
+    "bh": "bin/bh.js",
+    "bloodhound": "bin/bh.js",
+    "bloodhound-search": "bin/bh.js"
+  },
+  "scripts": {
+    "build": "cargo build --release && node scripts/copy-bin.js",
+    "test": "cargo test",
+    "prepare-packages": "node scripts/package-all.js",
+    "publish-all": "node scripts/publish-all.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "search",
+    "grep",
+    "ripgrep",
+    "find",
+    "rust",
+    "cli",
+    "fast",
+    "npx"
+  ],
+  "author": "Dev Nambiar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Starmarine06/Bloodhound-Search.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Starmarine06/Bloodhound-Search/issues"
+  },
+  "homepage": "https://github.com/Starmarine06/Bloodhound-Search#readme",
+  "license": "MIT",
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "optionalDependencies": {
+    "@dev_nambiar/bloodhound-win32-x64": "0.1.1",
+    "@dev_nambiar/bloodhound-win32-arm64": "0.1.1",
+    "@dev_nambiar/bloodhound-darwin-x64": "0.1.1",
+    "@dev_nambiar/bloodhound-darwin-arm64": "0.1.1",
+    "@dev_nambiar/bloodhound-linux-x64": "0.1.1",
+    "@dev_nambiar/bloodhound-linux-arm64": "0.1.1"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
