@@ -67,6 +67,19 @@ pub struct Cli {
     #[arg(short = 'n', long = "line-number")]
     pub line_number: bool,
 
+    /// Show each file path as its own heading line instead of repeating it on
+    /// every match. On by default when stdout is a TTY.
+    #[arg(long = "heading")]
+    pub heading: bool,
+
+    /// Never use heading mode; repeat the file path on every match line.
+    #[arg(long = "no-heading", conflicts_with = "heading")]
+    pub no_heading: bool,
+
+    /// Show the byte column of the first match on each match line.
+    #[arg(long = "column")]
+    pub column: bool,
+
     /// Never print line numbers.
     #[arg(short = 'N', long = "no-line-number")]
     pub no_line_number: bool,
@@ -167,6 +180,63 @@ pub struct Cli {
 }
 
 impl Cli {
+    /// True when no arguments or options were supplied at all. Runs `bh`
+    /// with no input, which prints the help menu instead of erroring.
+    pub fn is_bare(&self) -> bool {
+        self.pattern.is_none()
+            && self.paths.is_empty()
+            && self.regexp.is_empty()
+            && self.pattern_files.is_empty()
+            && !self.ignore_case
+            && !self.case_sensitive
+            && !self.files_with_matches
+            && !self.files_without_match
+            && !self.count
+            && !self.count_matches
+            && !self.only_matching
+            && !self.invert_match
+            && !self.quiet
+            && !self.line_number
+            && !self.no_line_number
+            && !self.heading
+            && !self.no_heading
+            && !self.column
+            && self.before_context == 0
+            && self.after_context == 0
+            && self.context == 0
+            && !self.hidden
+            && !self.follow
+            && !self.no_ignore
+            && self.globs.is_empty()
+            && self.iglobs.is_empty()
+            && self.max_depth.is_none()
+            && self.max_filesize.is_none()
+            && self.threads.is_none()
+            && !self.text
+            && self.encoding.is_none()
+            && self.color == "auto"
+            && !self.json
+            && !self.stats
+            && !self.files
+            && self.name.is_none()
+            && self.index_dir.is_none()
+            && !self.index
+            && !self.no_index
+            && !self.no_messages
+            && !self.no_index_messages
+    }
+
+    /// `bh help` with no search context: treat the bare word "help" as a
+    /// request for the help menu rather than a content pattern.
+    pub fn is_help_query(&self) -> bool {
+        self.pattern.as_deref() == Some("help")
+            && self.paths.is_empty()
+            && !self.has_flag_patterns()
+            && !self.files
+            && self.name.is_none()
+            && self.index_dir.is_none()
+    }
+
     /// The full list of content patterns, resolved from -e, -f and the
     /// positional pattern.
     pub fn patterns(&self) -> Vec<String> {

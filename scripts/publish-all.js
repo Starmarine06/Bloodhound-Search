@@ -14,7 +14,11 @@ if (fs.existsSync(packagesDir)) {
   for (const dir of dirs) {
     const pkgPath = path.join(packagesDir, dir);
     const binDir = path.join(pkgPath, 'bin');
-    const binFiles = fs.existsSync(binDir) ? fs.readdirSync(binDir) : [];
+    // Only real binaries count; ignore .gitkeep placeholders so empty
+    // platform packages (not built on this machine) are not published.
+    const binFiles = fs.existsSync(binDir)
+      ? fs.readdirSync(binDir).filter((f) => f !== '.gitkeep')
+      : [];
     
     // Only publish if binary is present
     if (binFiles.length > 0) {

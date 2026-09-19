@@ -11,7 +11,7 @@ use std::io::{IsTerminal, Write};
 use std::path::Path;
 use std::sync::atomic::Ordering;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use regex::RegexBuilder;
 
 use args::Cli;
@@ -23,11 +23,21 @@ use walker::{Action, Walker};
 
 fn main() {
     let cli = Cli::parse();
+    // `bh` with no arguments prints the full help menu (like `bh --help`).
+    if cli.is_bare() {
+        print_help();
+        return;
+    }
     let code = run(&cli);
     std::process::exit(code);
 }
 
 fn run(cli: &Cli) -> i32 {
+    // `bh help` prints the full help menu instead of searching for "help".
+    if cli.is_help_query() {
+        return print_help();
+    }
+
     let timer = Timer::start();
     let color = Printer::color_from(&cli.color);
 
@@ -106,6 +116,14 @@ fn run(cli: &Cli) -> i32 {
     } else {
         !cli.quiet && std::io::stdout().is_terminal() && !cli.json
     };
+    let heading = if cli.no_heading {
+        false
+    } else if cli.heading {
+        true
+    } else {
+        !cli.json && std::io::stdout().is_terminal() && !cli.count && !cli.files_with_matches
+            && !cli.files_without_match
+    };
 
     let out: Box<dyn Write + Send> = Box::new(std::io::stdout());
     let pr = Printer::new(PrinterConfig {
@@ -114,6 +132,8 @@ fn run(cli: &Cli) -> i32 {
         line_numbers,
         only_matching: cli.only_matching,
         context_requested,
+        heading,
+        column: cli.column,
         out,
     });
 
@@ -266,6 +286,8 @@ impl Printer {
             line_numbers: false,
             only_matching: false,
             context_requested: false,
+            heading: false,
+            column: false,
             out: Box::new(std::io::sink()),
         })
     }
@@ -305,6 +327,13 @@ fn err_exit(msg: &str) -> i32 {
     eprintln!("error: {msg}");
     eprintln!("usage: bh [OPTIONS] PATTERN [PATH ...]");
     2
+}
+
+/// Print the full clap help menu to stdout and exit successfully.
+fn print_help() -> i32 {
+    let _ = Cli::command().print_help();
+    println!();
+    0
 }
 
 fn action_name(a: Action) -> &'static str {

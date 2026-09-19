@@ -16,6 +16,8 @@ pub struct PrinterConfig {
     pub line_numbers: bool,
     pub only_matching: bool,
     pub context_requested: bool,
+    pub heading: bool,
+    pub column: bool,
     pub out: Box<dyn Write + Send>,
 }
 
@@ -29,6 +31,8 @@ struct State {
     json: bool,
     line_numbers: bool,
     only_matching: bool,
+    heading: bool,
+    column: bool,
     file_separator: bool,
     current_path: Option<String>,
     path_started: bool,
@@ -47,6 +51,8 @@ impl Printer {
                 json: cfg.json,
                 line_numbers: cfg.line_numbers,
                 only_matching: cfg.only_matching,
+                heading: cfg.heading,
+                column: cfg.column,
                 file_separator,
                 current_path: None,
                 path_started: false,
@@ -184,16 +190,20 @@ impl Printer {
 
 impl State {
     fn major(&mut self, path: &str, ev: &LineEvent, is_match: bool) {
-        let needs_begin = self.json && self.current_path.as_deref() != Some(path);
-        let needs_file_sep = self.file_separator
-            && !self.json
-            && self.current_path.as_deref() != Some(path)
-            && self.path_started;
-        if needs_begin {
-            let event = json!({"type":"begin","data":{"path":{"text":path}},"encoding":{"charset":"utf-8"}});
-            self.write_str(&serde_json::to_string(&event).unwrap_or_default());
-            self.write_byte(b'\n');
-        } else if needs_file_sep {
+        let is_new_file = self.current_path.as_deref() != Some(path);
+        if self.json {
+            if is_new_file {
+                let event = json!({"type":"begin","data":{"path":{"text":path}},"encoding":{"charset":"utf-8"}});
+                self.write_str(&serde_json::to_string(&event).unwrap_or_default());
+                self.write_byte(b'\n');
+            }
+        } else if self.heading {
+            // Heading mode: print the path once as its own line instead of
+            // repeating it on every match.
+            if is_new_file {
+                self.heading_line(path);
+            }
+        } else if self.file_separator && is_new_file && self.path_started {
             self.separator();
         }
         self.current_path = Some(path.to_string());
@@ -205,7 +215,7 @@ impl State {
                 let end = m.end().min(ev.line.len());
                 self.buf.clear();
                 if !self.json {
-                    self.push_prefix(path, None);
+                    self.push_prefix(path, Some(ev.line_no), Some(start as u64));
                 }
                 if self.color && !self.json {
                     self.buf.extend_from_slice(MATCH_OPEN.as_bytes());
@@ -263,8 +273,9 @@ impl State {
         }
 
         // Plain text output with segmented highlighting.
+        let column = self.match_column(ev, is_match);
+        self.push_prefix(path, Some(ev.line_no), column);
         if self.color {
-            self.push_prefix(path, Some(ev.line_no));
             let mut cursor = 0usize;
             for m in &ev.matches {
                 let start = m.start().min(ev.line.len());
@@ -281,7 +292,6 @@ impl State {
             }
             self.buf.extend_from_slice(&ev.line[cursor..]);
         } else {
-            self.push_prefix(path, Some(ev.line_no));
             self.buf.extend_from_slice(ev.line);
         }
         if !self.buf.last().is_some_and(|&b| b == b'\n') {
@@ -293,18 +303,32 @@ impl State {
         }
     }
 
-    fn push_prefix(&mut self, path: &str, line_no: Option<u64>) {
-        if self.color {
-            self.buf.extend_from_slice(PATH_OPEN.as_bytes());
-            self.buf.extend_from_slice(path.as_bytes());
-            self.buf.extend_from_slice(RESET.as_bytes());
-            self.buf.push(b':');
+    /// The byte column of the first match on a match line, when --column is on.
+    fn match_column(&self, ev: &LineEvent, is_match: bool) -> Option<u64> {
+        if self.column && is_match {
+            ev.matches
+                .first()
+                .map(|m| m.start().min(ev.line.len()) as u64)
         } else {
-            self.buf.extend_from_slice(path.as_bytes());
-            self.buf.push(b':');
+            None
+        }
+    }
+
+    fn push_prefix(&mut self, path: &str, line_no: Option<u64>, column: Option<u64>) {
+        let show_ln = self.line_numbers || column.is_some();
+        if !self.heading {
+            if self.color {
+                self.buf.extend_from_slice(PATH_OPEN.as_bytes());
+                self.buf.extend_from_slice(path.as_bytes());
+                self.buf.extend_from_slice(RESET.as_bytes());
+                self.buf.push(b':');
+            } else {
+                self.buf.extend_from_slice(path.as_bytes());
+                self.buf.push(b':');
+            }
         }
         if let Some(n) = line_no {
-            if self.line_numbers {
+            if show_ln {
                 if self.color {
                     self.buf.extend_from_slice(LINE_NO_OPEN.as_bytes());
                 }
@@ -313,8 +337,32 @@ impl State {
                     self.buf.extend_from_slice(RESET.as_bytes());
                 }
                 self.buf.push(b':');
+                if let Some(c) = column {
+                    if self.color {
+                        self.buf.extend_from_slice(LINE_NO_OPEN.as_bytes());
+                    }
+                    self.buf.extend_from_slice(c.to_string().as_bytes());
+                    if self.color {
+                        self.buf.extend_from_slice(RESET.as_bytes());
+                    }
+                    self.buf.push(b':');
+                }
             }
         }
+    }
+
+    /// The file path on its own line, used by heading mode.
+    fn heading_line(&mut self, path: &str) {
+        self.buf.clear();
+        if self.color {
+            self.buf.extend_from_slice(PATH_OPEN.as_bytes());
+            self.buf.extend_from_slice(path.as_bytes());
+            self.buf.extend_from_slice(RESET.as_bytes());
+        } else {
+            self.buf.extend_from_slice(path.as_bytes());
+        }
+        self.buf.push(b'\n');
+        self.write_buf();
     }
 
     fn separator(&mut self) {

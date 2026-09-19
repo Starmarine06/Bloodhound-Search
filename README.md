@@ -112,6 +112,25 @@ bh -o "https?://[^\s]+" docs/
 bh --color always "TODO" | less -R
 ```
 
+### 2b. Heading & Column Modes
+On a terminal, `bh` prints each file's path once as a heading and shows only `line:content`
+per match (`--heading`). Piped output keeps the compact `path:line:content` format — switch
+with `--no-heading` / `--heading`. Add byte columns for precise jump-to positions:
+
+```bash
+# Terminal (TTY): path heading once, then line:content
+bh "batch" src/
+
+# Force the one-line path:line:content format even in a terminal
+bh --no-heading "batch" src/
+
+# Show byte column of each match: path:line:col:content
+bh --column "batch" src/
+
+# Editable selector-friendly output: line:col per match after a heading
+bh -o "import\s+\w+" src/ --heading --column
+```
+
 ### 3. File Filtering & Traversal
 ```bash
 # Only list files that contain matches (-l)
@@ -185,6 +204,9 @@ Outputs high-precision execution timings, total scanned bytes, files visited, an
 | `-A, --after-context <N>` | Show `N` lines after match |
 | `-n, --line-number` | Print 1-indexed line numbers (default in TTY) |
 | `-N, --no-line-number` | Suppress line numbers |
+| `--heading` | Print each file path once as its own heading line (default in TTY) |
+| `--no-heading` | Never use heading mode; repeat the path on every match line |
+| `--column` | Print the byte column of the first match on each match line |
 | `-l, --files-with-matches` | Print only paths containing matches |
 | `--files-without-match` | Print only paths without matches |
 | `-c, --count` | Print match count per file |
