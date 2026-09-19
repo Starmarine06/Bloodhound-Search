@@ -61,6 +61,8 @@ for (const target of TARGETS) {
 
   fs.mkdirSync(binDir, { recursive: true });
 
+  const rootPkg = require('../package.json');
+
   const pkgJson = {
     name: `@dev_nambiar/bloodhound-${target.name}`,
     version: VERSION,
@@ -68,7 +70,10 @@ for (const target of TARGETS) {
     os: [target.os],
     cpu: [target.cpu],
     files: ['bin'],
-    license: 'MIT',
+    license: rootPkg.license || 'MIT',
+    repository: rootPkg.repository,
+    bugs: rootPkg.bugs,
+    homepage: rootPkg.homepage,
     publishConfig: {
       access: "public"
     }

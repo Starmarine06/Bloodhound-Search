@@ -96,10 +96,11 @@ jobs:
       - name: Prepare npm platform packages
         run: |
           node scripts/package-all.js
-          
+
           # Move downloaded artifacts into corresponding package bin folders
           for pkg in win32-x64 win32-arm64 darwin-x64 darwin-arm64 linux-x64 linux-arm64; do
             if [ -d "downloaded-artifacts/binary-$pkg" ]; then
+              rm -f packages/$pkg/bin/.gitkeep
               cp downloaded-artifacts/binary-$pkg/* packages/$pkg/bin/
               chmod +x packages/$pkg/bin/* || true
             fi
