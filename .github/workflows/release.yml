@@ -26,7 +26,7 @@ jobs:
             target: aarch64-pc-windows-msvc
             pkg: win32-arm64
             bin: bh.exe
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             pkg: darwin-x64
             bin: bh
